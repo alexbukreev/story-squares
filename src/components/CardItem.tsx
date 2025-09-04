@@ -11,12 +11,14 @@ function baseName(name: string) {
 }
 
 export default function CardItem({ photo }: { photo: PhotoItem }) {
-  const captions = useProjectStore((s) => s.captions);
+  const captions   = useProjectStore((s) => s.captions);
   const setCaption = useProjectStore((s) => s.setCaption);
+  const remove     = useProjectStore((s) => s.remove);   // <-- for delete
+
   const [editing, setEditing] = useState(false);
-  const current = captions[photo.id];
+  const current  = captions[photo.id];
   const fallback = useMemo(() => baseName(photo.name), [photo.name]);
-  const text = current ?? fallback;
+  const text     = current ?? fallback;
 
   const save = useCallback((val: string) => {
     setCaption(photo.id, val);
@@ -33,6 +35,16 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
 
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-foreground/15 bg-foreground/[0.02]">
+      {/* Delete button */}
+      <button
+        aria-label="Remove image"
+        title="Remove"
+        onClick={() => remove(photo.id)}
+        className="absolute right-1 top-1 z-10 rounded-md bg-background/80 px-1.5 py-0.5 text-[11px] shadow hover:bg-background"
+      >
+        ×
+      </button>
+
       <img
         src={photo.url}
         alt={photo.name}
@@ -40,7 +52,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         loading="lazy"
       />
 
-      {/* Caption bar */}
+      {/* Caption bar (click to edit) */}
       <div className="absolute inset-x-0 bottom-0">
         <div className="bg-background/80 backdrop-blur-sm px-2 py-1 text-xs">
           {editing ? (

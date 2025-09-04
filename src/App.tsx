@@ -1,8 +1,8 @@
 // src/App.tsx
-import { useAutoThemeClass } from './hooks/useAutoThemeClass';
-import TextSection from './components/TextSection';
+import { useAutoThemeClass } from "./hooks/useAutoThemeClass";
 import UploadPanel from "@/components/UploadPanel";
 import CardsPreview from "@/components/CardsPreview";
+import TextSection from "./components/TextSection";
 
 export default function App() {
   useAutoThemeClass();
