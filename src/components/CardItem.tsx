@@ -4,6 +4,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { useProjectStore } from "@/store/useProjectStore";
+import { exportCardPng } from "@/lib/exportImage";
 
 function baseName(name: string) {
   const dot = name.lastIndexOf(".");
@@ -13,7 +14,7 @@ function baseName(name: string) {
 export default function CardItem({ photo }: { photo: PhotoItem }) {
   const captions   = useProjectStore((s) => s.captions);
   const setCaption = useProjectStore((s) => s.setCaption);
-  const remove     = useProjectStore((s) => s.remove);   // <-- for delete
+  const remove     = useProjectStore((s) => s.remove);
 
   const [editing, setEditing] = useState(false);
   const current  = captions[photo.id];
@@ -33,9 +34,13 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
     }
   }, [save]);
 
+  const onExport = useCallback(async () => {
+    await exportCardPng(photo, text, { size: 2048 });
+  }, [photo, text]);
+
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-foreground/15 bg-foreground/[0.02]">
-      {/* Delete button */}
+      {/* Delete */}
       <button
         aria-label="Remove image"
         title="Remove"
@@ -45,6 +50,16 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         ×
       </button>
 
+      {/* Export */}
+      <button
+        aria-label="Export PNG"
+        title="Export PNG"
+        onClick={onExport}
+        className="absolute right-1 bottom-8 z-10 rounded-md bg-background/80 px-1.5 py-0.5 text-[11px] shadow hover:bg-background"
+      >
+        PNG
+      </button>
+
       <img
         src={photo.url}
         alt={photo.name}
@@ -52,7 +67,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         loading="lazy"
       />
 
-      {/* Caption bar (click to edit) */}
+      {/* Caption (click to edit) */}
       <div className="absolute inset-x-0 bottom-0">
         <div className="bg-background/80 backdrop-blur-sm px-2 py-1 text-xs">
           {editing ? (
