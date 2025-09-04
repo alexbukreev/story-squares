@@ -7,6 +7,10 @@ import { revokePhotoItems, type PhotoItem } from "@/lib/imageLoader";
 type ProjectStore = {
   photos: PhotoItem[];
   max: number;
+
+  templateId: string;              // <-- NEW
+  setTemplateId: (id: string) => void; // <-- NEW
+
   add: (items: PhotoItem[]) => void;
   clear: () => void;
   remove: (id: string) => void;
@@ -16,7 +20,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   photos: [],
   max: 36,
 
-  // Append photos until max capacity.
+  templateId: "sq-1",                // default preset
+  setTemplateId: (id) => set({ templateId: id }),
+
   add: (items) => {
     if (!items?.length) return;
     const { photos, max } = get();
@@ -26,14 +32,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ photos: [...photos, ...slice] });
   },
 
-  // Clear all photos and revoke object URLs.
   clear: () => {
     const old = get().photos;
     if (old.length) revokePhotoItems(old);
     set({ photos: [] });
   },
 
-  // Remove single photo by id and revoke its URL.
   remove: (id) => {
     const { photos } = get();
     const idx = photos.findIndex((p) => p.id === id);

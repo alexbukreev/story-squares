@@ -17,6 +17,6 @@ export default defineConfig({
     outDir: 'docs',  
     emptyOutDir: true,
   },
-  base: '/template/',
+  base: '/story-squares/',
   server: { port: 5175 },
 });
