@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useProjectStore } from "@/store/useProjectStore";
 import CardItem from "@/components/CardItem";
-import { exportCardsToPdf, type ExportProgress } from "@/lib/pdf";
+
+// Local copy to avoid importing from lib/pdf at build time.
+type ExportProgress = {
+  done: number; total: number; elapsedMs: number; etaMs?: number; pct: number;
+};
 
 function fmtMs(ms: number) {
   const s = ms / 1000;
@@ -33,6 +37,9 @@ export default function CardsPreview() {
     try {
       setBusy(true);
       setProg({ done: 0, total: photos.length, elapsedMs: 0, pct: 0 });
+
+      // Lazy load only when needed:
+      const { exportCardsToPdf } = await import("@/lib/pdf");
       await exportCardsToPdf(photos, captions, {
         size: 2048,
         onProgress: (p) => setProg(p),
@@ -43,7 +50,7 @@ export default function CardsPreview() {
   }, [photos, captions, busy]);
 
   return (
-    <section className="space-y-3">
+    <section className="space-y-1">
       <Card className="p-4">
         <div className="text-sm opacity-80 mb-3">
           Cards: <b>{photos.length}</b>
@@ -55,7 +62,6 @@ export default function CardsPreview() {
           ))}
         </div>
 
-        {/* Footer area with progress + button at the bottom */}
         <div className="mt-4 flex flex-col gap-2">
           {busy || prog ? (
             <>

@@ -64,7 +64,7 @@ export default function UploadPanel() {
   }, [handleFiles]);
 
   return (
-    <section className="space-y-4">
+    <section className="mt-4">
       <Card className="p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm opacity-80">

@@ -2,7 +2,6 @@
 import { useAutoThemeClass } from "./hooks/useAutoThemeClass";
 import UploadPanel from "@/components/UploadPanel";
 import CardsPreview from "@/components/CardsPreview";
-import TextSection from "./components/TextSection";
 
 export default function App() {
   useAutoThemeClass();
@@ -13,10 +12,9 @@ export default function App() {
       >
         Story Squares v0.0
       </div>
-      <main className="mx-auto max-w-screen-md px-4 space-y-8">
+      <main className="mx-auto max-w-screen-md px-4 space-y-5">
         <UploadPanel />
         <CardsPreview />
-        <TextSection />
       </main>
     </>
   );
