@@ -9,20 +9,19 @@ import { useProjectStore } from "@/store/useProjectStore";
 
 export default function UploadPanel() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const dropRef = useRef<HTMLDivElement | null>(null);
+  const dropRef  = useRef<HTMLDivElement | null>(null);
   const [isOver, setIsOver] = useState(false);
 
   const photos = useProjectStore((s) => s.photos);
   const max    = useProjectStore((s) => s.max);
   const add    = useProjectStore((s) => s.add);
   const clear  = useProjectStore((s) => s.clear);
-  const remove = useProjectStore((s) => s.remove);
 
   const remaining = Math.max(0, max - photos.length);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files?.length) return;
-    const arr = Array.from(files).slice(0, remaining);
+    const arr   = Array.from(files).slice(0, remaining);
     const items = filesToPhotoItems(arr, remaining);
     add(items);
   }, [add, remaining]);
@@ -65,7 +64,7 @@ export default function UploadPanel() {
   }, [handleFiles]);
 
   return (
-    <section className="space-y-4 mt-5">
+    <section className="space-y-4">
       <Card className="p-4">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm opacity-80">
@@ -105,28 +104,6 @@ export default function UploadPanel() {
           </div>
         </div>
       </Card>
-
-      {!!photos.length && (
-        <Card className="p-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
-            {photos.map((it) => (
-              <figure key={it.id} className="group relative rounded-lg overflow-hidden border border-foreground/15">
-                <img src={it.url} alt={it.name} className="aspect-square w-full object-cover" loading="lazy" />
-                <figcaption className="absolute inset-x-0 bottom-0 bg-background/70 text-[10px] px-1 py-0.5 truncate">
-                  {it.name}
-                </figcaption>
-                <button
-                  onClick={() => remove(it.id)}
-                  className="absolute right-1 top-1 hidden rounded-md bg-background/80 px-1.5 py-0.5 text-[10px] shadow group-hover:block"
-                  aria-label="Remove image"
-                >
-                  ×
-                </button>
-              </figure>
-            ))}
-          </div>
-        </Card>
-      )}
     </section>
   );
 }
