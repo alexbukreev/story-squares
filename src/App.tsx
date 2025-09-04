@@ -2,8 +2,7 @@
 import { useAutoThemeClass } from './hooks/useAutoThemeClass';
 import TextSection from './components/TextSection';
 import UploadPanel from "@/components/UploadPanel";
-import TemplatePicker from "@/components/TemplatePicker";
-import StoryGrid from "@/components/StoryGrid";
+import CardsPreview from "@/components/CardsPreview";
 
 export default function App() {
   useAutoThemeClass();
@@ -16,8 +15,7 @@ export default function App() {
       </div>
       <main className="mx-auto max-w-screen-md px-4 space-y-8">
         <UploadPanel />
-        <TemplatePicker />
-        <StoryGrid />
+        <CardsPreview />
         <TextSection />
       </main>
     </>
