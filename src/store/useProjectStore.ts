@@ -8,8 +8,8 @@ type ProjectStore = {
   photos: PhotoItem[];
   max: number;
 
-  templateId: string;              // <-- NEW
-  setTemplateId: (id: string) => void; // <-- NEW
+  captions: Record<string, string>;
+  setCaption: (id: string, text: string) => void;
 
   add: (items: PhotoItem[]) => void;
   clear: () => void;
@@ -20,8 +20,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   photos: [],
   max: 36,
 
-  templateId: "sq-1",                // default preset
-  setTemplateId: (id) => set({ templateId: id }),
+  captions: {},
+  setCaption: (id, text) =>
+    set((s) => ({
+      captions: text.trim()
+        ? { ...s.captions, [id]: text }
+        : (() => { const { [id]:_, ...rest } = s.captions; return rest; })(),
+    })),
 
   add: (items) => {
     if (!items?.length) return;
@@ -35,14 +40,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   clear: () => {
     const old = get().photos;
     if (old.length) revokePhotoItems(old);
-    set({ photos: [] });
+    set({ photos: [], captions: {} });
   },
 
   remove: (id) => {
-    const { photos } = get();
+    const { photos, captions } = get();
     const idx = photos.findIndex((p) => p.id === id);
     if (idx === -1) return;
     revokePhotoItems([photos[idx]]);
-    set({ photos: photos.filter((p) => p.id !== id) });
+    const { [id]: _, ...rest } = captions;
+    set({ photos: photos.filter((p) => p.id !== id), captions: rest });
   },
 }));
