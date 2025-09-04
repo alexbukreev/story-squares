@@ -5,13 +5,14 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
 import { useProjectStore } from "@/store/useProjectStore";
 import CardItem from "@/components/CardItem";
 
-// Local copy to avoid importing from lib/pdf at build time.
-type ExportProgress = {
-  done: number; total: number; elapsedMs: number; etaMs?: number; pct: number;
-};
+// Local progress type (to keep this file independent of lib types)
+type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number; };
 
 function fmtMs(ms: number) {
   const s = ms / 1000;
@@ -24,6 +25,10 @@ export default function CardsPreview() {
 
   const [busy, setBusy] = useState(false);
   const [prog, setProg] = useState<ExportProgress | null>(null);
+
+  // export options (kept local for simplicity)
+  const [format, setFormat] = useState<"jpeg" | "png">("jpeg");
+  const [quality, setQuality] = useState(85); // 50..95 (for jpeg)
 
   const pct = prog?.pct ?? 0;
   const status = useMemo(() => {
@@ -38,19 +43,21 @@ export default function CardsPreview() {
       setBusy(true);
       setProg({ done: 0, total: photos.length, elapsedMs: 0, pct: 0 });
 
-      // Lazy load only when needed:
+      // Lazy-load pdf logic
       const { exportCardsToPdf } = await import("@/lib/pdf");
       await exportCardsToPdf(photos, captions, {
         size: 2048,
+        format,
+        quality: Math.min(0.95, Math.max(0.5, quality / 100)),
         onProgress: (p) => setProg(p),
       });
     } finally {
       setBusy(false);
     }
-  }, [photos, captions, busy]);
+  }, [photos, captions, busy, format, quality]);
 
   return (
-    <section className="space-y-1">
+    <section className="space-y-3">
       <Card className="p-4">
         <div className="text-sm opacity-80 mb-3">
           Cards: <b>{photos.length}</b>
@@ -62,13 +69,42 @@ export default function CardsPreview() {
           ))}
         </div>
 
-        <div className="mt-4 flex flex-col gap-2">
-          {busy || prog ? (
+        {/* Footer with export options, progress, and button */}
+        <div className="mt-4 flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="opacity-70">Format</span>
+              <Select value={format} onValueChange={(v: "jpeg" | "png") => setFormat(v)}>
+                <SelectTrigger className="w-28 h-8">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="jpeg">JPEG (smaller)</SelectItem>
+                  <SelectItem value="png">PNG (lossless)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {format === "jpeg" && (
+              <div className="flex items-center gap-2">
+                <span className="opacity-70">Quality</span>
+                <input
+                  type="range" min={50} max={95} step={5}
+                  value={quality}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                />
+                <span className="tabular-nums">{quality}%</span>
+              </div>
+            )}
+          </div>
+
+          {(busy || prog) && (
             <>
               <Progress value={pct} className="h-2" />
               <div className="text-xs opacity-70">{status}</div>
             </>
-          ) : null}
+          )}
+
           <div className="flex justify-end">
             <Button size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
               {busy ? "Exporting…" : "Export PDF"}

@@ -5,11 +5,16 @@ import { PDFDocument } from "pdf-lib";
 import type { PhotoItem } from "@/lib/imageLoader";
 
 export type ExportProgress = {
-  done: number;        // pages rendered so far
-  total: number;       // total pages
-  elapsedMs: number;   // time since start
-  etaMs?: number;      // estimated time remaining
-  pct: number;         // 0..100
+  done: number; total: number; elapsedMs: number; etaMs?: number; pct: number;
+};
+
+type RenderOpts = {
+  size?: number;          // square side in px (render & page)
+  format?: "jpeg" | "png";// image format embedded into PDF
+  quality?: number;       // 0..1 for jpeg
+  bg?: string;
+  captionBg?: string;
+  textColor?: string;
 };
 
 /** Load <img> from a URL (works with blob: URLs). */
@@ -22,21 +27,18 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Render one card (photo + caption bar) to PNG Blob via Canvas. */
-async function renderCardPngBlob(
+/** Render one card (photo + caption) to bytes (png or jpeg). */
+async function renderCardBytes(
   photo: PhotoItem,
   caption: string,
-  opts: {
-    size?: number;
-    bg?: string;
-    captionBg?: string;
-    textColor?: string;
-  } = {}
-): Promise<Blob> {
+  opts: RenderOpts = {}
+): Promise<{ bytes: Uint8Array; mime: "image/png" | "image/jpeg"; width: number; height: number }> {
   const size = opts.size ?? 2048;
   const bg = opts.bg ?? "transparent";
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";
+  const format = opts.format ?? "jpeg";
+  const quality = opts.quality ?? 0.85;
 
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -49,6 +51,7 @@ async function renderCardPngBlob(
     ctx.fillRect(0, 0, size, size);
   }
 
+  // Photo (object-fit: cover)
   const img = await loadImage(photo.url);
   const scale = Math.max(size / img.width, size / img.height);
   const dw = Math.round(img.width * scale);
@@ -58,10 +61,12 @@ async function renderCardPngBlob(
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, dx, dy, dw, dh);
 
+  // Caption bar
   const barH = Math.max(96, Math.round(size * 0.12));
   ctx.fillStyle = captionBg;
   ctx.fillRect(0, size - barH, size, barH);
 
+  // Caption text (single line, ellipsis)
   const padX = Math.round(barH * 0.2);
   const fontSize = Math.round(barH * 0.42);
   ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
@@ -75,10 +80,21 @@ async function renderCardPngBlob(
   }
   ctx.fillText(text, padX, size - barH / 2);
 
+  const mime = format === "png" ? "image/png" : "image/jpeg";
   const blob: Blob = await new Promise((res, rej) =>
-    canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png")
+    canvas.toBlob(
+      (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
+      mime,
+      mime === "image/jpeg" ? quality : undefined
+    )
   );
-  return blob;
+
+  return {
+    bytes: new Uint8Array(await blob.arrayBuffer()),
+    mime,
+    width: size,
+    height: size,
+  };
 }
 
 /** Download bytes as a .pdf file. */
@@ -101,9 +117,11 @@ function downloadPdf(bytes: Uint8Array, filename = "story-squares.pdf") {
 export async function exportCardsToPdf(
   photos: PhotoItem[],
   captions: Record<string, string>,
-  opts: { size?: number; onProgress?: (p: ExportProgress) => void } = {}
+  opts: RenderOpts & { onProgress?: (p: ExportProgress) => void } = {}
 ) {
   const size = opts.size ?? 2048;
+  const format = opts.format ?? "jpeg";
+  const quality = opts.quality ?? 0.85;
   const onProgress = opts.onProgress;
 
   const pdf = await PDFDocument.create();
@@ -123,20 +141,21 @@ export async function exportCardsToPdf(
   for (let i = 0; i < total; i++) {
     const photo = photos[i];
     const cap = captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, "");
-    const pngBlob = await renderCardPngBlob(photo, cap, { size });
+    const { bytes, mime, width, height } = await renderCardBytes(photo, cap, {
+      size, format, quality,
+    });
 
-    const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
-    const img = await pdf.embedPng(pngBytes);
+    const img = mime === "image/png"
+      ? await pdf.embedPng(bytes)
+      : await pdf.embedJpg(bytes);
 
-    const page = pdf.addPage([img.width, img.height]);
-    page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+    const page = pdf.addPage([width, height]);
+    page.drawImage(img, { x: 0, y: 0, width, height });
 
     tick(i + 1);
-
-    // Yield to the UI thread to let React render progress.
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0)); // yield to UI
   }
 
-  const bytes = await pdf.save();
-  downloadPdf(bytes);
+  const out = await pdf.save();
+  downloadPdf(out);
 }
