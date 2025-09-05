@@ -32,21 +32,102 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
   const resetTransform = useProjectStore((s) => s.resetTransform);
 
   // Local caption state (commit on Save)
-  const initialCap = captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, "");
+  const initialCap = captions[photo.id] ?? "";
   const [cap, setCap] = React.useState(initialCap);
+  
   // --- Auto-size textarea ---
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
-  const autosize = React.useCallback(() => {
-    const el = taRef.current;
-    if (!el) return;
-    el.style.height = "0px";               // reset to shrink if needed
-    el.style.height = el.scrollHeight + "px";
-  }, []);
-  React.useLayoutEffect(() => { autosize(); }, [cap, open, autosize]);
+
+  const measureRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
-    setCap(captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, ""));
-  }, [captions, photo.id, photo.name]);
+    const m = document.createElement("div");
+    // keep it off-screen and non-interfering
+    m.style.position = "absolute";
+    m.style.visibility = "hidden";
+    m.style.zIndex = "-1";
+    m.style.top = "0";
+    m.style.left = "-99999px";
+    m.style.whiteSpace = "pre-wrap";   // same as textarea wrapping
+    (m.style as any).overflowWrap = "break-word"; // modern replacement for word-wrap
+    document.body.appendChild(m);
+    measureRef.current = m;
+    return () => {
+      document.body.removeChild(m);
+      measureRef.current = null;
+    };
+  }, []);
+
+  const autosize = React.useCallback(() => {
+    const ta = taRef.current;
+    const m = measureRef.current;
+    if (!ta || !m) return;
+
+    // copy computed styles that affect text metrics
+    const cs = getComputedStyle(ta);
+    m.style.font = cs.font;
+    m.style.letterSpacing = cs.letterSpacing;
+    m.style.lineHeight = cs.lineHeight;
+    m.style.padding = cs.padding;
+    m.style.border = cs.border;
+    m.style.boxSizing = cs.boxSizing;
+
+    // match current width of textarea
+    m.style.width = ta.clientWidth + "px";
+
+    // set text; trailing newline ensures last line height counted
+    m.textContent = (cap ?? "") + "\n";
+
+    const h = m.scrollHeight; // measured content height
+    ta.style.height = "auto";
+    ta.style.height = h + "px";
+  }, [cap]);
+
+  
+  React.useLayoutEffect(() => { autosize(); }, [cap, open, autosize]);
+
+  // Re-run autosize when dialog opens *after* layout; also keep in sync on width changes.
+  React.useEffect(() => {
+    if (!open) return;
+    const el = taRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+
+    const run = () => {
+      if (cancelled) return;
+      autosize();
+      // run once more next frame (fonts/backdrop blur may settle a frame later)
+      requestAnimationFrame(() => { if (!cancelled) autosize(); });
+    };
+
+    // wait until element is actually laid out (width > 0)
+    const ensureVisible = () => {
+      if (cancelled) return;
+      if (el.isConnected && el.clientWidth > 0) {
+        // after layout & paint
+        requestAnimationFrame(run);
+      } else {
+        requestAnimationFrame(ensureVisible);
+      }
+    };
+
+    const raf = requestAnimationFrame(ensureVisible);
+
+    // keep height in sync if width changes
+    const ro = new ResizeObserver(run);
+    ro.observe(el);
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
+  }, [open, cap, autosize]);
+
+  React.useEffect(() => {
+    setCap(captions[photo.id] ?? "");
+  }, [captions, photo.id]);
 
   const onSave = () => {
     setCaption(photo.id, cap);
@@ -64,6 +145,22 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
           overflow-hidden
           flex flex-col
         "
+        onOpenAutoFocus={() => {
+          // Диалог уже отрендерен и видим — можно точно измерять
+          requestAnimationFrame(() => {
+            autosize();
+            // ещё один тик — на случай подгрузки шрифтов/blur
+            setTimeout(autosize, 50);
+
+            // курсор в конец текста (по просьбе)
+            const el = taRef.current;
+            if (el) {
+              el.focus({ preventScroll: true });
+              const len = el.value.length;
+              try { el.setSelectionRange(len, len); } catch {}
+            }
+          });
+        }}
       >
         <DialogHeader className="shrink-0">
             <DialogTitle>Edit card</DialogTitle>
@@ -87,7 +184,6 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
               {/* Image with transform */}
               <img
                 src={photo.url}
-                alt={photo.name}
                 className="h-full w-full object-cover"
                 style={{
                   transform: `translate(${t.tx}%, ${t.ty}%) scale(${t.scale})`,
@@ -108,7 +204,8 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
                     pointer-events-auto w-full resize-none overflow-hidden
                     bg-transparent border-0 outline-none
                     focus-visible:ring-0 focus-visible:outline-none
-                    p-0 text-xs leading-snug
+                    p-0 text-xs leading-snug 
+                    min-h-0
                   "
                   placeholder="Type caption…"
                   aria-label="Caption"

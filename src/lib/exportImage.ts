@@ -115,44 +115,48 @@ export async function exportCardPng(
 
   // --- Caption ---
   // сохраняем прежние пропорции как минимум высоты
-  const minBarH = Math.max(96, Math.round(size * 0.12));
-  const pad = Math.round(minBarH * 0.20);          // используем один паддинг по X и Y
-  const fontSize = Math.round(minBarH * 0.42);     // как было
+  // --- Caption ---
+  const CAP_BAR_FRAC = 0.06;        // 6% of side for a 1-line baseline
+  const CAP_FONT_FRAC = 0.34;       // font size relative to bar
+  const minBarH   = Math.max(72, Math.round(size * CAP_BAR_FRAC));
+  const pad       = Math.round(minBarH * 0.22);
+  const fontSize  = Math.round(minBarH * CAP_FONT_FRAC);
   const lineHeight = Math.round(fontSize * 1.25);
 
-  ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillStyle = textColor;
-  ctx.textBaseline = "top";
 
-  const maxTextWidth = size - pad * 2;
-  const needsWrap = caption.includes("\n") || ctx.measureText(caption).width > maxTextWidth;
-
-  if (!needsWrap) {
-    // старое поведение: одна строка по центру, с троеточием
-    const barH = minBarH;
-    ctx.fillStyle = captionBg;
-    ctx.fillRect(0, size - barH, size, barH);
-
-    const text = ellipsize(ctx, caption, maxTextWidth);
+  if (caption && caption.trim()) {
+    ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
     ctx.fillStyle = textColor;
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, pad, size - barH / 2);
-  } else {
-    // многострочный режим: подбираем высоту бара под число строк
-    const lines = wrapText(ctx, caption, maxTextWidth);
-    const textH = Math.max(lineHeight, lines.length * lineHeight);
-    const barH = Math.max(minBarH, pad + textH + pad);
-
-    ctx.fillStyle = captionBg;
-    ctx.fillRect(0, size - barH, size, barH);
-
-    ctx.fillStyle = textColor;
-    let y = size - barH + pad;
-    for (const line of lines) {
-      ctx.fillText(line, pad, y, maxTextWidth);
-      y += lineHeight;
+    ctx.textBaseline = "top";
+  
+    const maxTextWidth = size - pad * 2;
+    const needsWrap = caption.includes("\n") || ctx.measureText(caption).width > maxTextWidth;
+  
+    if (!needsWrap) {
+      const barH = minBarH;
+      ctx.fillStyle = captionBg;
+      ctx.fillRect(0, size - barH, size, barH);
+  
+      const text = ellipsize(ctx, caption, maxTextWidth);
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, pad, size - barH / 2);
+    } else {
+      const lines = wrapText(ctx, caption, maxTextWidth);
+      const textH = Math.max(lineHeight, lines.length * lineHeight);
+      const barH = Math.max(minBarH, pad + textH + pad);
+  
+      ctx.fillStyle = captionBg;
+      ctx.fillRect(0, size - barH, size, barH);
+  
+      ctx.fillStyle = textColor;
+      let y = size - barH + pad;
+      for (const line of lines) {
+        ctx.fillText(line, pad, y, maxTextWidth);
+        y += lineHeight;
+      }
     }
-  }
+  }  
 
   const blob: Blob = await new Promise((res, rej) =>
     canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png")

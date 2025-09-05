@@ -19,9 +19,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
 
   const [openDialog, setOpenDialog] = useState(false);
 
-  const current = captions[photo.id];
-  const fallback = useMemo(() => baseName(photo.name), [photo.name]);
-  const text = current ?? fallback;
+  const text = captions[photo.id] ?? "";
 
   const onExport = useCallback(async () => {
     await exportCardPng(photo, text, { size: 2048, transform: t });
@@ -73,11 +71,13 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         />
 
         {/* Caption (view only) */}
-        <div className="absolute inset-x-0 bottom-0">
-          <div className="bg-background/80 backdrop-blur-sm px-2 py-1 text-xs">
-            <div className="truncate">{text}</div>
+        {text && (
+          <div className="absolute inset-x-0 bottom-0">
+            <div className="bg-background/80 backdrop-blur-sm px-2 py-1 text-xs">
+              <div className="truncate">{text}</div>
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
 
