@@ -15,6 +15,7 @@ import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { useProjectStore, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
+import { Textarea } from "@/components/ui/textarea";
 
 type Props = {
   open: boolean;
@@ -33,6 +34,16 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
   // Local caption state (commit on Save)
   const initialCap = captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, "");
   const [cap, setCap] = React.useState(initialCap);
+  // --- Auto-size textarea ---
+  const taRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const autosize = React.useCallback(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "0px";               // reset to shrink if needed
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+  React.useLayoutEffect(() => { autosize(); }, [cap, open, autosize]);
+
   React.useEffect(() => {
     setCap(captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, ""));
   }, [captions, photo.id, photo.name]);
@@ -84,28 +95,29 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
                 }}
               />
 
-              {/* Caption editor on image – plain input */}
-                <div className="absolute inset-x-0 bottom-0">
-                    <div className="relative bg-background/80 backdrop-blur-sm px-2 py-1">
-                        <input
-                        dir="ltr"
-                        value={cap}
-                        onChange={(e) => setCap(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                            e.preventDefault();
-                            onSave();
-                            }
-                        }}
-                        className="w-full bg-transparent border-0 outline-none focus-visible:ring-0 text-xs"
-                        placeholder="Type caption…"
-                        aria-label="Caption"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        />
-                    </div>
+              {/* Caption editor overlay (auto-growing textarea) */}
+              <div className="absolute inset-x-0 bottom-0">
+                <div className="relative bg-background/80 backdrop-blur-sm px-2 pt-1 pb-2">
+                <Textarea
+                  ref={taRef}
+                  value={cap}
+                  onChange={(e) => setCap(e.target.value)}
+                  onInput={autosize}                // keep height in sync while typing
+                  rows={1}
+                  className="
+                    pointer-events-auto w-full resize-none overflow-hidden
+                    bg-transparent border-0 outline-none
+                    focus-visible:ring-0 focus-visible:outline-none
+                    p-0 text-xs leading-snug
+                  "
+                  placeholder="Type caption…"
+                  aria-label="Caption"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
                 </div>
+              </div>
 
             </div>
 

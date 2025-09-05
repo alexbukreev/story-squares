@@ -60,22 +60,48 @@ async function renderCardBytes(
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, dx, dy, dw, dh);
 
-  const barH = Math.max(96, Math.round(size * 0.12));
+  // Caption bar + text (multiline support)
+const minBarH = Math.max(96, Math.round(size * 0.12));
+const pad = Math.round(minBarH * 0.20);
+const fontSize = Math.round(minBarH * 0.42);
+const lineHeight = Math.round(fontSize * 1.25);
+
+ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+ctx.fillStyle = textColor;
+ctx.textBaseline = "top";
+
+const maxTextWidth = size - pad * 2;
+const needsWrap = caption.includes("\n") || ctx.measureText(caption).width > maxTextWidth;
+
+if (!needsWrap) {
+  const barH = minBarH;
   ctx.fillStyle = captionBg;
   ctx.fillRect(0, size - barH, size, barH);
 
-  const padX = Math.round(barH * 0.2);
-  const fontSize = Math.round(barH * 0.42);
-  ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
-  ctx.fillStyle = textColor;
-  ctx.textBaseline = "middle";
   let text = caption;
-  const maxW = size - padX * 2;
-  if (ctx.measureText(text).width > maxW) {
-    while (text.length && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
+  if (ctx.measureText(text).width > maxTextWidth) {
+    while (text.length && ctx.measureText(text + "…").width > maxTextWidth) text = text.slice(0, -1);
     text += "…";
   }
-  ctx.fillText(text, padX, size - barH / 2);
+
+  ctx.fillStyle = textColor;
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, pad, size - barH / 2);
+  } else {
+    const lines = wrapText(ctx, caption, maxTextWidth);
+    const textH = Math.max(lineHeight, lines.length * lineHeight);
+    const barH = Math.max(minBarH, pad + textH + pad);
+
+    ctx.fillStyle = captionBg;
+    ctx.fillRect(0, size - barH, size, barH);
+
+    ctx.fillStyle = textColor;
+    let y = size - barH + pad;
+    for (const line of lines) {
+      ctx.fillText(line, pad, y, maxTextWidth);
+      y += lineHeight;
+    }
+  }
 
   const mime = format === "png" ? "image/png" : "image/jpeg";
   const blob: Blob = await new Promise((res, rej) =>
@@ -96,6 +122,38 @@ function downloadPdf(bytes: Uint8Array, filename = "story-squares.pdf") {
   a.remove();
   URL.revokeObjectURL(href);
 }
+
+/** Word-wrapping helper (respects explicit \n). */
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const paras = text.replace(/\r\n?/g, "\n").split("\n");
+  const lines: string[] = [];
+  for (const p of paras) {
+    const words = p.split(/\s+/);
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? cur + " " + w : w;
+      if (ctx.measureText(test).width <= maxWidth) {
+        cur = test;
+      } else {
+        if (cur) lines.push(cur);
+        if (ctx.measureText(w).width > maxWidth) {
+          let chunk = "";
+          for (const ch of w) {
+            const t = chunk + ch;
+            if (ctx.measureText(t).width <= maxWidth) chunk = t;
+            else { lines.push(chunk); chunk = ch; }
+          }
+          cur = chunk;
+        } else {
+          cur = w;
+        }
+      }
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+
 
 /**
  * Build PDF with one square page per card.
