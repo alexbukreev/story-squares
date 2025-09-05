@@ -1,7 +1,7 @@
 // src/components/CardsPreview.tsx
 // All comments must be in English (project rule).
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -11,7 +11,6 @@ import {
 import { useProjectStore } from "@/store/useProjectStore";
 import CardItem from "@/components/CardItem";
 
-// Local progress type (to keep this file independent of lib types)
 type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number; };
 
 function fmtMs(ms: number) {
@@ -20,13 +19,14 @@ function fmtMs(ms: number) {
 }
 
 export default function CardsPreview() {
-  const photos   = useProjectStore((s) => s.photos);
-  const captions = useProjectStore((s) => s.captions);
+  const photos      = useProjectStore((s) => s.photos);
+  const captions    = useProjectStore((s) => s.captions);
+  const transforms  = useProjectStore((s) => s.transforms); // <-- объявляем ОДИН раз
 
   const [busy, setBusy] = useState(false);
   const [prog, setProg] = useState<ExportProgress | null>(null);
+  const inFlight = useRef(false);
 
-  // export options (kept local for simplicity)
   const [format, setFormat] = useState<"jpeg" | "png">("jpeg");
   const [quality, setQuality] = useState(85); // 50..95 (for jpeg)
 
@@ -38,14 +38,14 @@ export default function CardsPreview() {
   }, [prog, pct]);
 
   const onExportPdf = useCallback(async () => {
-    if (!photos.length || busy) return;
+    if (!photos.length || inFlight.current) return;
+    inFlight.current = true;
     try {
       setBusy(true);
       setProg({ done: 0, total: photos.length, elapsedMs: 0, pct: 0 });
 
-      // Lazy-load pdf logic
       const { exportCardsToPdf } = await import("@/lib/pdf");
-      await exportCardsToPdf(photos, captions, {
+      await exportCardsToPdf(photos, captions, transforms, {
         size: 2048,
         format,
         quality: Math.min(0.95, Math.max(0.5, quality / 100)),
@@ -53,8 +53,9 @@ export default function CardsPreview() {
       });
     } finally {
       setBusy(false);
+      inFlight.current = false;
     }
-  }, [photos, captions, busy, format, quality]);
+  }, [photos, captions, transforms, format, quality]);
 
   return (
     <section className="space-y-3">
@@ -69,7 +70,6 @@ export default function CardsPreview() {
           ))}
         </div>
 
-        {/* Footer with export options, progress, and button */}
         <div className="mt-4 flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <div className="flex items-center gap-2">
@@ -106,7 +106,7 @@ export default function CardsPreview() {
           )}
 
           <div className="flex justify-end">
-            <Button size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
+            <Button type="button" size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
               {busy ? "Exporting…" : "Export PDF"}
             </Button>
           </div>

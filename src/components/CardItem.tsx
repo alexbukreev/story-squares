@@ -24,8 +24,8 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
   const text = current ?? fallback;
 
   const onExport = useCallback(async () => {
-    await exportCardPng(photo, text, { size: 2048 }); // transform support добавим следующим шагом
-  }, [photo, text]);
+    await exportCardPng(photo, text, { size: 2048, transform: t });
+  }, [photo, text, t]);
 
   return (
     <>

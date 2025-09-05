@@ -3,21 +3,20 @@
 
 import { PDFDocument } from "pdf-lib";
 import type { PhotoItem } from "@/lib/imageLoader";
+import { type Transform, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
 
-export type ExportProgress = {
-  done: number; total: number; elapsedMs: number; etaMs?: number; pct: number;
-};
+export type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number };
 
 type RenderOpts = {
-  size?: number;          // square side in px (render & page)
-  format?: "jpeg" | "png";// image format embedded into PDF
-  quality?: number;       // 0..1 for jpeg
+  size?: number;
+  format?: "jpeg" | "png";
+  quality?: number;
   bg?: string;
   captionBg?: string;
   textColor?: string;
+  transform?: Transform; // NEW: per-card transform
 };
 
-/** Load <img> from a URL (works with blob: URLs). */
 async function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -27,7 +26,6 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Render one card (photo + caption) to bytes (png or jpeg). */
 async function renderCardBytes(
   photo: PhotoItem,
   caption: string,
@@ -39,6 +37,7 @@ async function renderCardBytes(
   const textColor = opts.textColor ?? "#111";
   const format = opts.format ?? "jpeg";
   const quality = opts.quality ?? 0.85;
+  const t = opts.transform ?? DEFAULT_TRANSFORM;
 
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -51,29 +50,27 @@ async function renderCardBytes(
     ctx.fillRect(0, 0, size, size);
   }
 
-  // Photo (object-fit: cover)
   const img = await loadImage(photo.url);
-  const scale = Math.max(size / img.width, size / img.height);
+  const base = Math.max(size / img.width, size / img.height);
+  const scale = base * t.scale;
   const dw = Math.round(img.width * scale);
   const dh = Math.round(img.height * scale);
-  const dx = Math.round((size - dw) / 2);
-  const dy = Math.round((size - dh) / 2);
+  const dx = Math.round((size - dw) / 2 + (t.tx / 100) * size);
+  const dy = Math.round((size - dh) / 2 + (t.ty / 100) * size);
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, dx, dy, dw, dh);
 
-  // Caption bar
   const barH = Math.max(96, Math.round(size * 0.12));
   ctx.fillStyle = captionBg;
   ctx.fillRect(0, size - barH, size, barH);
 
-  // Caption text (single line, ellipsis)
   const padX = Math.round(barH * 0.2);
   const fontSize = Math.round(barH * 0.42);
   ctx.font = `${fontSize}px system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
   ctx.fillStyle = textColor;
   ctx.textBaseline = "middle";
-  const maxW = size - padX * 2;
   let text = caption;
+  const maxW = size - padX * 2;
   if (ctx.measureText(text).width > maxW) {
     while (text.length && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
     text += "…";
@@ -82,22 +79,12 @@ async function renderCardBytes(
 
   const mime = format === "png" ? "image/png" : "image/jpeg";
   const blob: Blob = await new Promise((res, rej) =>
-    canvas.toBlob(
-      (b) => (b ? res(b) : rej(new Error("toBlob failed"))),
-      mime,
-      mime === "image/jpeg" ? quality : undefined
-    )
+    canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), mime, mime === "image/jpeg" ? quality : undefined)
   );
 
-  return {
-    bytes: new Uint8Array(await blob.arrayBuffer()),
-    mime,
-    width: size,
-    height: size,
-  };
+  return { bytes: new Uint8Array(await blob.arrayBuffer()), mime, width: size, height: size };
 }
 
-/** Download bytes as a .pdf file. */
 function downloadPdf(bytes: Uint8Array, filename = "story-squares.pdf") {
   const blob = new Blob([bytes], { type: "application/pdf" });
   const a = document.createElement("a");
@@ -111,12 +98,13 @@ function downloadPdf(bytes: Uint8Array, filename = "story-squares.pdf") {
 }
 
 /**
- * Build a PDF: one card per page, square pages.
- * Accepts onProgress callback for UI updates.
+ * Build PDF with one square page per card.
+ * Now accepts `transforms` map to mirror preview transforms.
  */
 export async function exportCardsToPdf(
   photos: PhotoItem[],
   captions: Record<string, string>,
+  transforms: Record<string, Transform>,
   opts: RenderOpts & { onProgress?: (p: ExportProgress) => void } = {}
 ) {
   const size = opts.size ?? 2048;
@@ -141,19 +129,24 @@ export async function exportCardsToPdf(
   for (let i = 0; i < total; i++) {
     const photo = photos[i];
     const cap = captions[photo.id] ?? photo.name.replace(/\.[^.]+$/, "");
+    const tr = transforms[photo.id] ?? DEFAULT_TRANSFORM;
+
     const { bytes, mime, width, height } = await renderCardBytes(photo, cap, {
-      size, format, quality,
-    });
+        size,
+        format,
+        quality,
+        transform: tr,
+        bg: opts.bg,
+        captionBg: opts.captionBg,
+        textColor: opts.textColor,
+      });      
 
-    const img = mime === "image/png"
-      ? await pdf.embedPng(bytes)
-      : await pdf.embedJpg(bytes);
-
+    const img = mime === "image/png" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
     const page = pdf.addPage([width, height]);
     page.drawImage(img, { x: 0, y: 0, width, height });
 
     tick(i + 1);
-    await new Promise((r) => setTimeout(r, 0)); // yield to UI
+    await new Promise((r) => setTimeout(r, 0));
   }
 
   const out = await pdf.save();

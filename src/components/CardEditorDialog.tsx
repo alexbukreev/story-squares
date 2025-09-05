@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -44,6 +45,7 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        aria-describedby={undefined}
         className="
           max-w-[min(92vw,52rem)]
           max-h-[92vh]
@@ -53,7 +55,10 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
         "
       >
         <DialogHeader className="shrink-0">
-          <DialogTitle>Edit card</DialogTitle>
+            <DialogTitle>Edit card</DialogTitle>
+            <DialogDescription className="sr-only">
+                Adjust zoom and position of the photo and edit the caption.
+            </DialogDescription>
         </DialogHeader>
 
         {/* Scrollable content */}
