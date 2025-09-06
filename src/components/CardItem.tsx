@@ -1,7 +1,7 @@
 // src/components/CardItem.tsx
 // All comments must be in English (project rule).
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { useProjectStore, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
 import { exportCardPng, renderCardExactPreviewUrl } from "@/lib/exportImage";
@@ -13,7 +13,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
   const t = useProjectStore((s) => s.transforms[photo.id] ?? DEFAULT_TRANSFORM);
   const [openDialog, setOpenDialog] = useState(false);
 
-  // caption (no filename fallback)
+  // Caption (no filename fallback)
   const text = (captions[photo.id] ?? "").trim();
 
   // Measure card width to choose preview render size
@@ -29,24 +29,31 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
     return () => ro.disconnect();
   }, []);
 
-  // Render bitmap snapshot that mirrors PNG/PDF (but smaller)
+  // Render bitmap snapshot that mirrors PNG/PDF (downscaled)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isRendering, setIsRendering] = useState(true);
+  const jobRef = useRef(0); // increments every render request
+
   useEffect(() => {
     let cancelled = false;
     let prev: string | null = null;
+    const myJob = ++jobRef.current;
 
     const render = async () => {
       if (!w) return;
+      setIsRendering(true);
       const dpr = window.devicePixelRatio || 1;
       const px = Math.max(384, Math.min(1024, Math.round(w * dpr))); // clamp for perf
+
       const url = await renderCardExactPreviewUrl(photo, text, { size: px, transform: t });
-      if (cancelled) {
+      if (cancelled || jobRef.current !== myJob) {
         URL.revokeObjectURL(url);
         return;
       }
       if (prev) URL.revokeObjectURL(prev);
       setPreviewUrl(url);
       prev = url;
+      setIsRendering(false);
     };
 
     render();
@@ -96,12 +103,22 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
           PNG
         </button>
 
-        {/* Snapshot preview (bitmap, matches PNG/PDF). No fallback to original photo. */}
+        {/* Snapshot preview (bitmap, matches PNG/PDF). */}
         {previewUrl ? (
           <img src={previewUrl} alt={photo.name} className="h-full w-full object-cover" />
         ) : (
           <div className="h-full w-full bg-foreground/[0.06]" />
         )}
+
+        {/* Progress overlay while preview is (re)rendering */}
+        <div
+          className={`pointer-events-none absolute inset-0 grid place-items-center transition-opacity ${
+            isRendering ? "opacity-100" : "opacity-0"
+          } bg-background/80 backdrop-blur-[2px]`}
+          aria-hidden={!isRendering}
+        >
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-foreground/40 border-t-transparent" />
+        </div>
       </div>
 
       <CardEditorDialog open={openDialog} onOpenChange={setOpenDialog} photo={photo} />
