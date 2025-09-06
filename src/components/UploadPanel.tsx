@@ -2,7 +2,6 @@
 // All comments must be in English (project rule).
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { filesToPhotoItems } from "@/lib/imageLoader";
 import { useProjectStore } from "@/store/useProjectStore";
@@ -64,46 +63,46 @@ export default function UploadPanel() {
   }, [handleFiles]);
 
   return (
-    <section className="mt-4">
-      <Card className="p-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm opacity-80">
-            Selected: <b>{photos.length}</b> / {max}
-          </div>
-          <div className="flex gap-2">
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={onInputChange}
-            />
-            <Button variant="secondary" onClick={() => inputRef.current?.click()}>
-              Choose images
-            </Button>
-            <Button variant="destructive" onClick={clear} disabled={!photos.length}>
-              Clear
-            </Button>
-          </div>
+    <section className="mt-4 space-y-4">
+      {/* Top row */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm opacity-80">
+          Selected: <b>{photos.length}</b> / {max}
         </div>
+        <div className="flex gap-2">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={onInputChange}
+          />
+          <Button variant="secondary" onClick={() => inputRef.current?.click()}>
+            Choose images
+          </Button>
+          <Button variant="destructive" onClick={clear} disabled={!photos.length}>
+            Clear
+          </Button>
+        </div>
+      </div>
 
-        <div
-          ref={dropRef}
-          className={[
-            "mt-4 grid place-items-center rounded-xl border border-dashed p-8 text-center transition",
-            isOver ? "border-foreground/80 bg-foreground/5" : "border-foreground/30",
-          ].join(" ")}
-        >
-          <div className="space-y-1">
-            <div className="text-base font-medium">Drag & drop images here</div>
-            <div className="text-xs opacity-70">or click “Choose images”</div>
-            {photos.length < max && (
-              <div className="text-xs opacity-70">You can add {remaining} more</div>
-            )}
-          </div>
+      {/* Drop zone */}
+      <div
+        ref={dropRef}
+        className={[
+          "grid place-items-center rounded-xl border border-dashed p-8 text-center transition",
+          isOver ? "border-foreground/80 bg-foreground/5" : "border-foreground/30",
+        ].join(" ")}
+      >
+        <div className="space-y-1">
+          <div className="text-base font-medium">Drag & drop images here</div>
+          <div className="text-xs opacity-70">or click “Choose images”</div>
+          {photos.length < max && (
+            <div className="text-xs opacity-70">You can add {remaining} more</div>
+          )}
         </div>
-      </Card>
+      </div>
     </section>
   );
 }

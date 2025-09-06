@@ -2,7 +2,6 @@
 // All comments must be in English (project rule).
 
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -21,7 +20,7 @@ function fmtMs(ms: number) {
 export default function CardsPreview() {
   const photos      = useProjectStore((s) => s.photos);
   const captions    = useProjectStore((s) => s.captions);
-  const transforms  = useProjectStore((s) => s.transforms); // <-- объявляем ОДИН раз
+  const transforms  = useProjectStore((s) => s.transforms);
 
   const [busy, setBusy] = useState(false);
   const [prog, setProg] = useState<ExportProgress | null>(null);
@@ -59,59 +58,60 @@ export default function CardsPreview() {
 
   return (
     <section className="space-y-3">
-      <Card className="p-4">
-        <div className="text-sm opacity-80 mb-3">
-          Cards: <b>{photos.length}</b>
-        </div>
+      {/* Header */}
+      <div className="text-sm opacity-80">
+        Cards: <b>{photos.length}</b>
+      </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-          {photos.map((p) => (
-            <CardItem key={p.id} photo={p} />
-          ))}
-        </div>
+      {/* Grid of cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {photos.map((p) => (
+          <CardItem key={p.id} photo={p} />
+        ))}
+      </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-3 text-sm">
+      {/* Controls */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="opacity-70">Format</span>
+            <Select value={format} onValueChange={(v: "jpeg" | "png") => setFormat(v)}>
+              <SelectTrigger className="w-28 h-8">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="jpeg">JPEG (smaller)</SelectItem>
+                <SelectItem value="png">PNG (lossless)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {format === "jpeg" && (
             <div className="flex items-center gap-2">
-              <span className="opacity-70">Format</span>
-              <Select value={format} onValueChange={(v: "jpeg" | "png") => setFormat(v)}>
-                <SelectTrigger className="w-28 h-8">
-                  <SelectValue placeholder="Format" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="jpeg">JPEG (smaller)</SelectItem>
-                  <SelectItem value="png">PNG (lossless)</SelectItem>
-                </SelectContent>
-              </Select>
+              <span className="opacity-70">Quality</span>
+              <input
+                type="range" min={50} max={95} step={5}
+                value={quality}
+                onChange={(e) => setQuality(Number(e.target.value))}
+              />
+              <span className="tabular-nums">{quality}%</span>
             </div>
-
-            {format === "jpeg" && (
-              <div className="flex items-center gap-2">
-                <span className="opacity-70">Quality</span>
-                <input
-                  type="range" min={50} max={95} step={5}
-                  value={quality}
-                  onChange={(e) => setQuality(Number(e.target.value))}
-                />
-                <span className="tabular-nums">{quality}%</span>
-              </div>
-            )}
-          </div>
-
-          {(busy || prog) && (
-            <>
-              <Progress value={pct} className="h-2" />
-              <div className="text-xs opacity-70">{status}</div>
-            </>
           )}
-
-          <div className="flex justify-end">
-            <Button type="button" size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
-              {busy ? "Exporting…" : "Export PDF"}
-            </Button>
-          </div>
         </div>
-      </Card>
+
+        {(busy || prog) && (
+          <>
+            <Progress value={pct} className="h-2" />
+            <div className="text-xs opacity-70">{status}</div>
+          </>
+        )}
+
+        <div className="flex justify-end">
+          <Button type="button" size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
+            {busy ? "Exporting…" : "Export PDF"}
+          </Button>
+        </div>
+      </div>
     </section>
   );
 }

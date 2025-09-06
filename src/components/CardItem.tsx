@@ -6,12 +6,15 @@ import type { PhotoItem } from "@/lib/imageLoader";
 import { useProjectStore, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
 import { exportCardPng, renderCardExactPreviewUrl } from "@/lib/exportImage";
 import CardEditorDialog from "@/components/CardEditorDialog";
+import PreviewDialog from "@/components/PreviewDialog";
 
-export default function CardItem({ photo }: { photo: PhotoItem }) {
+export default function CardItem({ photo }: { photo: PhotfoItem }) {
   const captions = useProjectStore((s) => s.captions);
   const remove = useProjectStore((s) => s.remove);
   const t = useProjectStore((s) => s.transforms[photo.id] ?? DEFAULT_TRANSFORM);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openViewer, setOpenViewer] = useState(false);
+
 
   // Caption (no filename fallback)
   const text = (captions[photo.id] ?? "").trim();
@@ -71,13 +74,14 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
     <>
       <div
         ref={rootRef}
+        onClick={() => setOpenViewer(true)}
         className="relative aspect-square w-full overflow-hidden rounded-xl border border-foreground/15 bg-foreground/[0.02]"
       >
         {/* Delete */}
         <button
           aria-label="Remove image"
           title="Remove"
-          onClick={() => remove(photo.id)}
+          onClick={(e) => { e.stopPropagation(); remove(photo.id); }}
           className="absolute right-1 top-1 z-10 rounded-md bg-background/80 px-1.5 py-0.5 text-[11px] shadow hover:bg-background"
         >
           ×
@@ -87,7 +91,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         <button
           aria-label="Edit card"
           title="Edit"
-          onClick={() => setOpenDialog(true)}
+          onClick={(e) => { e.stopPropagation(); setOpenDialog(true); }}
           className="absolute left-1 top-1 z-10 rounded-md bg-background/80 px-1.5 py-0.5 text-[11px] shadow hover:bg-background"
         >
           Edit
@@ -97,7 +101,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         <button
           aria-label="Export PNG"
           title="Export PNG"
-          onClick={onExport}
+          onClick={(e) => { e.stopPropagation(); onExport(); }}
           className="absolute right-1 bottom-8 z-10 rounded-md bg-background/80 px-1.5 py-0.5 text-[11px] shadow hover:bg-background"
         >
           PNG
@@ -121,7 +125,17 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
         </div>
       </div>
 
+      <PreviewDialog
+        open={openViewer}
+        onOpenChange={setOpenViewer}
+        photo={photo}
+        caption={text}
+        transform={t}
+        onEdit={() => setOpenDialog(true)}
+      />
+
       <CardEditorDialog open={openDialog} onOpenChange={setOpenDialog} photo={photo} />
+
     </>
   );
 }
