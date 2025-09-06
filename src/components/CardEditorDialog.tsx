@@ -88,9 +88,9 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
       <DialogContent
         aria-describedby={undefined}
         className="
-          max-w-[min(92vw,52rem)]
-          max-h-[92vh]
-          p-4
+          max-w-[min(96vw,52rem)]
+          max-h-[96vh]
+          p-2
           overflow-hidden
           flex flex-col
         "

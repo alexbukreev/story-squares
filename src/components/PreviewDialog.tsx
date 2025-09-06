@@ -63,7 +63,15 @@ export default function PreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent aria-describedby={undefined} className="sm:max-w-[92vw] p-3">
+        <DialogContent
+          aria-describedby={undefined}
+          className="
+            max-w-[min(96vw,52rem)]
+            max-h-[96vh]
+            p-2
+            overflow-hidden
+          "
+        >
             <DialogHeader className="sr-only">
                 <DialogTitle>Card preview</DialogTitle>
                 <DialogDescription>
