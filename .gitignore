@@ -13,6 +13,7 @@ secret
 src
 dist-ssr
 *.locals
+_DelSyncFiles
 
 # Editor directories and files
 .vscode/*
