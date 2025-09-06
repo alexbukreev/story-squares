@@ -108,7 +108,7 @@ export default function PreviewDialog({
                 exportCardPng(photo, caption, { size: 2048, transform })
                 }
             >
-                PNG
+                Save PNG
             </Button>
             </DialogFooter>
       </DialogContent>
