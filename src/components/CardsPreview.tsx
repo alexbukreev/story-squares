@@ -58,60 +58,59 @@ export default function CardsPreview() {
 
   return (
     <section className="space-y-3">
-      {/* Header */}
-      <div className="text-sm opacity-80">
-        Cards: <b>{photos.length}</b>
-      </div>
+      {/* Cards header removed */}
 
-      {/* Grid of cards */}
+      {/* Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {photos.map((p) => (
           <CardItem key={p.id} photo={p} />
         ))}
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="opacity-70">Format</span>
-            <Select value={format} onValueChange={(v: "jpeg" | "png") => setFormat(v)}>
-              <SelectTrigger className="w-28 h-8">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="jpeg">JPEG (smaller)</SelectItem>
-                <SelectItem value="png">PNG (lossless)</SelectItem>
-              </SelectContent>
-            </Select>
+      {/* Export controls — hidden when there are no cards */}
+      {photos.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="opacity-70">Format</span>
+              <Select value={format} onValueChange={(v: "jpeg" | "png") => setFormat(v)}>
+                <SelectTrigger className="w-28 h-8">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="jpeg">JPEG (smaller)</SelectItem>
+                  <SelectItem value="png">PNG (lossless)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {format === "jpeg" && (
+              <div className="flex items-center gap-2">
+                <span className="opacity-70">Quality</span>
+                <input
+                  type="range" min={50} max={95} step={5}
+                  value={quality}
+                  onChange={(e) => setQuality(Number(e.target.value))}
+                />
+                <span className="tabular-nums">{quality}%</span>
+              </div>
+            )}
           </div>
 
-          {format === "jpeg" && (
-            <div className="flex items-center gap-2">
-              <span className="opacity-70">Quality</span>
-              <input
-                type="range" min={50} max={95} step={5}
-                value={quality}
-                onChange={(e) => setQuality(Number(e.target.value))}
-              />
-              <span className="tabular-nums">{quality}%</span>
-            </div>
+          {(busy || prog) && (
+            <>
+              <Progress value={pct} className="h-2" />
+              <div className="text-xs opacity-70">{status}</div>
+            </>
           )}
-        </div>
 
-        {(busy || prog) && (
-          <>
-            <Progress value={pct} className="h-2" />
-            <div className="text-xs opacity-70">{status}</div>
-          </>
-        )}
-
-        <div className="flex justify-end">
-          <Button type="button" size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
-            {busy ? "Exporting…" : "Export PDF"}
-          </Button>
+          <div className="flex justify-end">
+            <Button type="button" size="sm" onClick={onExportPdf} disabled={!photos.length || busy}>
+              {busy ? "Exporting…" : "Export PDF"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }
