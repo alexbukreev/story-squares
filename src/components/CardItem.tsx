@@ -1,10 +1,10 @@
 // src/components/CardItem.tsx
 // All comments must be in English (project rule).
 
-import React, { useCallback, useState, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { useProjectStore, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
-import { exportCardPng, renderCardExactPngUrl } from "@/lib/exportImage";
+import { exportCardPng, renderCardExactPreviewUrl } from "@/lib/exportImage";
 import CardEditorDialog from "@/components/CardEditorDialog";
 
 export default function CardItem({ photo }: { photo: PhotoItem }) {
@@ -16,31 +16,45 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
   // caption (no filename fallback)
   const text = (captions[photo.id] ?? "").trim();
 
-  // Render bitmap snapshot that mirrors PNG/PDF
+  // Measure card width to choose preview render size
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const update = () => setW(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Render bitmap snapshot that mirrors PNG/PDF (but smaller)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useEffect(() => {
-    let revoked: string | null = null;
     let cancelled = false;
+    let prev: string | null = null;
 
     const render = async () => {
-      // генерим *тот же* PNG размером 2048 и просто показываем уменьшенную копию
-      const url = await renderCardExactPngUrl(photo, text, { size: 2048, transform: t });
+      if (!w) return;
+      const dpr = window.devicePixelRatio || 1;
+      const px = Math.max(384, Math.min(1024, Math.round(w * dpr))); // clamp for perf
+      const url = await renderCardExactPreviewUrl(photo, text, { size: px, transform: t });
       if (cancelled) {
         URL.revokeObjectURL(url);
         return;
       }
-      if (revoked) URL.revokeObjectURL(revoked);
+      if (prev) URL.revokeObjectURL(prev);
       setPreviewUrl(url);
-      revoked = url;
+      prev = url;
     };
 
     render();
     return () => {
       cancelled = true;
-      if (revoked) URL.revokeObjectURL(revoked);
+      if (prev) URL.revokeObjectURL(prev);
     };
-  }, [photo.url, text, t.scale, t.tx, t.ty]);
-
+  }, [w, photo.url, text, t.scale, t.tx, t.ty]);
 
   const onExport = useCallback(async () => {
     await exportCardPng(photo, text, { size: 2048, transform: t });
@@ -49,6 +63,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
   return (
     <>
       <div
+        ref={rootRef}
         className="relative aspect-square w-full overflow-hidden rounded-xl border border-foreground/15 bg-foreground/[0.02]"
       >
         {/* Delete */}
@@ -81,8 +96,12 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
           PNG
         </button>
 
-        {/* Snapshot preview (bitmap, matches PNG/PDF output) */}
-        <img src={previewUrl ?? photo.url} alt={photo.name} className="h-full w-full object-cover" />
+        {/* Snapshot preview (bitmap, matches PNG/PDF). No fallback to original photo. */}
+        {previewUrl ? (
+          <img src={previewUrl} alt={photo.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="h-full w-full bg-foreground/[0.06]" />
+        )}
       </div>
 
       <CardEditorDialog open={openDialog} onOpenChange={setOpenDialog} photo={photo} />

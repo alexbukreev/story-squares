@@ -30,6 +30,54 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(href);
 }
 
+/** Render preview that is a downscaled copy of the *exact* 2048 PNG.
+ *  Ensures preview is visually identical to export, but lightweight. */
+export async function renderCardExactPreviewUrl(
+  photo: PhotoItem,
+  caption: string,
+  opts: {
+    size?: number;            // target preview size (square)
+    baseSize?: number;        // source render size, must match export (default 2048)
+    bg?: string;
+    captionBg?: string;
+    textColor?: string;
+    transform?: Transform;
+  } = {}
+): Promise<string> {
+  const targetSize = opts.size ?? 768;      // лёгкий превьюшный размер
+  const baseSize   = opts.baseSize ?? 2048; // как в экспорт
+
+  // 1) Рендерим "большой" PNG абсолютно тем же кодом
+  const bigUrl = await renderCardExactPngUrl(photo, caption, {
+    size: baseSize,
+    bg: opts.bg,
+    captionBg: opts.captionBg,
+    textColor: opts.textColor,
+    transform: opts.transform,
+  });
+
+  try {
+    // 2) Масштабируем в маленький PNG для превью
+    const img = await loadImage(bigUrl);
+    const canvas = document.createElement("canvas");
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("No 2D context");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, targetSize, targetSize);
+
+    const blob: Blob = await new Promise((res, rej) =>
+      canvas.toBlob((b) => (b ? res(b) : rej(new Error("toBlob failed"))), "image/png")
+    );
+    return URL.createObjectURL(blob);
+  } finally {
+    // не держим в памяти 2048-версию
+    URL.revokeObjectURL(bigUrl);
+  }
+}
+
+
 /** Ellipsize text to fit into maxWidth. */
 function ellipsize(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
   if (ctx.measureText(text).width <= maxWidth) return text;
