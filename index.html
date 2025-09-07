@@ -4,30 +4,15 @@
     <meta charset="UTF-8" />
     <!-- Google tag (gtag.js) -->
     <script>
-      (function () {
-        var el = document.documentElement;
-        var stored = null;
-        try { stored = localStorage.getItem("theme"); } catch (_) { /* iOS private mode safe */ }
-    
-        var mql = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
-        var systemPrefersDark = !!(mql && mql.matches);
-    
-        // "auto" по умолчанию
-        var shouldDark = stored === "dark" || (stored !== "light" && systemPrefersDark);
-        el.classList.toggle("dark", shouldDark);
-    
-        // если пользователь в "auto", слушаем смену системной темы
-        var onChange = function (e) {
-          try { stored = localStorage.getItem("theme"); } catch (_) {}
-          if (stored === "light" || stored === "dark") return;
-          el.classList.toggle("dark", e.matches);
-        };
-        if (mql) {
-          if (mql.addEventListener) mql.addEventListener("change", onChange);
-          else if (mql.addListener) mql.addListener(onChange); // старый Safari
-        }
-      })();
-    </script>       
+      if (
+        localStorage.getItem("theme") === "dark" ||
+        (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    </script>    
 
     <!-- Favicon and icons -->
     <link rel="icon" href="/favicon.ico" />
@@ -39,10 +24,7 @@
     <link rel="manifest" href="/manifest.json" />
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0b0b0b" />
-    <meta name="color-scheme" content="light dark">
-
+    <meta name="theme-color" content="#000000" />
     <meta name="description" content="Story Squares" />
 
     <title>Story Squares</title>
