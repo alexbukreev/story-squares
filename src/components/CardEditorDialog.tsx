@@ -64,7 +64,7 @@ export default function CardEditorDialog({ open, onOpenChange, photo }: Props) {
   const measureFrame = React.useCallback(() => {
     const el = frameRef.current;
     if (!el) return;
-    const w = Math.round(el.getBoundingClientRect().width);
+    const w = Math.round(el.clientWidth); // excludes border, matches padding-box
     if (w) setFrameSize(w);
   }, []);
 
