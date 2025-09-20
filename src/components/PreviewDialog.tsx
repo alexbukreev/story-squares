@@ -8,6 +8,7 @@ import type { PhotoItem } from "@/lib/imageLoader";
 import type { Transform } from "@/store/useProjectStore";
 import { renderCardExactPngUrl, exportCardPng } from "@/lib/exportImage";
 import { DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CARD_EXPORT_SIZE } from "@/config";
 
 type Props = {
   open: boolean;
@@ -42,7 +43,7 @@ export default function PreviewDialog({
     setLoading(true);
     (async () => {
       const u = await renderCardExactPngUrl(photo, caption, {
-        size: 2048,
+        size: CARD_EXPORT_SIZE,
         transform,
       });
       if (cancelled) {
@@ -110,7 +111,7 @@ export default function PreviewDialog({
               </Button>
               <Button
                   onClick={() =>
-                  exportCardPng(photo, caption, { size: 2048, transform })
+                  exportCardPng(photo, caption, { size: CARD_EXPORT_SIZE, transform })
                   }
               >
                   Save PNG

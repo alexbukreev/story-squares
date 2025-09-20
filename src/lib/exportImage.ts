@@ -3,6 +3,7 @@
 
 import type { PhotoItem } from "@/lib/imageLoader";
 import { type Transform, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
+import { CARD_EXPORT_SIZE } from "@/config";
 
 /** Load <img> from a URL (works with blob: URLs too). */
 async function loadImage(url: string): Promise<HTMLImageElement> {
@@ -30,14 +31,14 @@ export function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(href);
 }
 
-/** Render preview that is a downscaled copy of the *exact* 2048 PNG.
+/** Render preview that is a downscaled copy of the *exact* export-size PNG.
  *  Ensures preview is visually identical to export, but lightweight. */
 export async function renderCardExactPreviewUrl(
   photo: PhotoItem,
   caption: string,
   opts: {
     size?: number;            // target preview size (square)
-    baseSize?: number;        // source render size, must match export (default 2048)
+    baseSize?: number;        // source render size, must match export (default = CARD_EXPORT_SIZE)
     bg?: string;
     captionBg?: string;
     textColor?: string;
@@ -45,7 +46,7 @@ export async function renderCardExactPreviewUrl(
   } = {}
 ): Promise<string> {
   const targetSize = opts.size ?? 768;      // лёгкий превьюшный размер
-  const baseSize   = opts.baseSize ?? 2048; // как в экспорт
+  const baseSize   = opts.baseSize ?? CARD_EXPORT_SIZE; // как в экспорт
 
   // 1) Рендерим "большой" PNG абсолютно тем же кодом
   const bigUrl = await renderCardExactPngUrl(photo, caption, {
@@ -72,7 +73,7 @@ export async function renderCardExactPreviewUrl(
     );
     return URL.createObjectURL(blob);
   } finally {
-    // не держим в памяти 2048-версию
+    // release big preview buffer
     URL.revokeObjectURL(bigUrl);
   }
 }
@@ -147,7 +148,7 @@ export async function exportCardPng(
     transform?: Transform;
   } = {}
 ) {
-  const size = opts.size ?? 2048;
+  const size = opts.size ?? CARD_EXPORT_SIZE;
   const bg = opts.bg ?? "transparent";
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";
@@ -230,7 +231,7 @@ export async function renderCardExactPngUrl(
     transform?: Transform;
   } = {}
 ): Promise<string> {
-  const size = opts.size ?? 2048;
+  const size = opts.size ?? CARD_EXPORT_SIZE;
   const bg = opts.bg ?? "transparent";
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";

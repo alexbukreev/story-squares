@@ -4,6 +4,7 @@
 import { PDFDocument } from "pdf-lib";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { type Transform, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
+import { CARD_EXPORT_SIZE } from "@/config";
 
 export type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number };
 
@@ -31,7 +32,7 @@ async function renderCardBytes(
   caption: string,
   opts: RenderOpts = {}
 ): Promise<{ bytes: Uint8Array; mime: "image/png" | "image/jpeg"; width: number; height: number }> {
-  const size = opts.size ?? 2048;
+  const size = opts.size ?? CARD_EXPORT_SIZE;
   const bg = opts.bg ?? "transparent";
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";
@@ -171,7 +172,7 @@ export async function exportCardsToPdf(
   transforms: Record<string, Transform>,
   opts: RenderOpts & { onProgress?: (p: ExportProgress) => void } = {}
 ) {
-  const size = opts.size ?? 2048;
+  const size = opts.size ?? CARD_EXPORT_SIZE;
   const format = opts.format ?? "jpeg";
   const quality = opts.quality ?? 0.85;
   const onProgress = opts.onProgress;

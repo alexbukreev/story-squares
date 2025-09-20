@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useProjectStore } from "@/store/useProjectStore";
 import CardItem from "@/components/CardItem";
+import { CARD_EXPORT_SIZE } from "@/config";
 
 type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number };
 
@@ -55,7 +56,7 @@ export default function CardsPreview() {
 
       const { exportCardsToPdf } = await import("@/lib/pdf");
       await exportCardsToPdf(photos, captions, transforms, {
-        size: 2048,
+        size: CARD_EXPORT_SIZE,
         format,
         quality: Math.min(0.95, Math.max(0.5, quality / 100)),
         onProgress: (p) => setProg(p),

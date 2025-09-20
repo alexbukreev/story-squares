@@ -3,6 +3,7 @@
 
 import { create } from "zustand";
 import { revokePhotoItems, type PhotoItem } from "@/lib/imageLoader";
+import { MAX_CARDS } from "@/config";
 
 export type Transform = {
   /** Scale factor for the photo inside the square card. */
@@ -38,7 +39,7 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   photos: [],
-  max: 36,
+  max: MAX_CARDS,
 
   captions: {},
   transforms: {},

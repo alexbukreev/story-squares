@@ -7,6 +7,7 @@ import { useProjectStore, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
 import { exportCardPng, renderCardExactPreviewUrl } from "@/lib/exportImage";
 import CardEditorDialog from "@/components/CardEditorDialog";
 import PreviewDialog from "@/components/PreviewDialog";
+import { CARD_EXPORT_SIZE } from "@/config";
 
 export default function CardItem({ photo }: { photo: PhotoItem }) {
   const captions = useProjectStore((s) => s.captions);
@@ -67,7 +68,7 @@ export default function CardItem({ photo }: { photo: PhotoItem }) {
   }, [w, photo.url, text, t.scale, t.tx, t.ty]);
 
   const onExport = useCallback(async () => {
-    await exportCardPng(photo, text, { size: 2048, transform: t });
+    await exportCardPng(photo, text, { size: CARD_EXPORT_SIZE, transform: t });
   }, [photo, text, t]);
 
   return (
