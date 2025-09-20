@@ -10,7 +10,7 @@ export default function App() {
       <div
         className="sticky top-0 z-10 w-full py-3 text-center text-3xl font-bold bg-background border-b border-gray-300"
       >
-        Story Squares v0.0
+        Story Squares v0.1
       </div>
       <main className="mx-auto max-w-screen-md px-4 space-y-5">
         <UploadPanel />
