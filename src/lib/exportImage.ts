@@ -3,7 +3,7 @@
 
 import type { PhotoItem } from "@/lib/imageLoader";
 import { type Transform, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
-import { CARD_EXPORT_SIZE } from "@/config";
+import { CARD_EXPORT_SIZE, PREVIEW_EXACT_SIZE, PREVIEW_FAST_SIZE } from "@/config";
 
 /** Load <img> from a URL (works with blob: URLs too). */
 async function loadImage(url: string): Promise<HTMLImageElement> {
@@ -45,7 +45,7 @@ export async function renderCardExactPreviewUrl(
     transform?: Transform;
   } = {}
 ): Promise<string> {
-  const targetSize = opts.size ?? 768;      // лёгкий превьюшный размер
+  const targetSize = opts.size ?? PREVIEW_EXACT_SIZE; // lightweight exact-preview size
   const baseSize   = opts.baseSize ?? CARD_EXPORT_SIZE; // как в экспорт
 
   // 1) Рендерим "большой" PNG абсолютно тем же кодом
@@ -323,7 +323,7 @@ export async function renderCardPreviewUrl(
     transform?: Transform;
   } = {}
 ): Promise<string> {
-  const size = opts.size ?? 1024;
+  const size = opts.size ?? PREVIEW_FAST_SIZE;
   const bg = opts.bg ?? "transparent";
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";

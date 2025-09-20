@@ -4,7 +4,8 @@
 import { PDFDocument } from "pdf-lib";
 import type { PhotoItem } from "@/lib/imageLoader";
 import { type Transform, DEFAULT_TRANSFORM } from "@/store/useProjectStore";
-import { CARD_EXPORT_SIZE } from "@/config";
+import { CARD_EXPORT_SIZE, PDF_JPEG_QUALITY } from "@/config";
+
 
 export type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number };
 
@@ -37,7 +38,7 @@ async function renderCardBytes(
   const captionBg = opts.captionBg ?? "rgba(255,255,255,0.82)";
   const textColor = opts.textColor ?? "#111";
   const format = opts.format ?? "jpeg";
-  const quality = opts.quality ?? 0.85;
+  const quality = opts.quality ?? PDF_JPEG_QUALITY;
   const t = opts.transform ?? DEFAULT_TRANSFORM;
 
   const canvas = document.createElement("canvas");
@@ -174,7 +175,7 @@ export async function exportCardsToPdf(
 ) {
   const size = opts.size ?? CARD_EXPORT_SIZE;
   const format = opts.format ?? "jpeg";
-  const quality = opts.quality ?? 0.85;
+  const quality = opts.quality ?? PDF_JPEG_QUALITY;
   const onProgress = opts.onProgress;
 
   const pdf = await PDFDocument.create();
