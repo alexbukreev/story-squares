@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) -->
+    <script>
+      (function () {
+        var el = document.documentElement;
+        var stored = null;
+        try { stored = localStorage.getItem("theme"); } catch (_) { /* iOS private mode safe */ }
+    
+        var mql = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)");
+        var systemPrefersDark = !!(mql && mql.matches);
+    
+        // "auto" по умолчанию
+        var shouldDark = stored === "dark" || (stored !== "light" && systemPrefersDark);
+        el.classList.toggle("dark", shouldDark);
+    
+        // если пользователь в "auto", слушаем смену системной темы
+        var onChange = function (e) {
+          try { stored = localStorage.getItem("theme"); } catch (_) {}
+          if (stored === "light" || stored === "dark") return;
+          el.classList.toggle("dark", e.matches);
+        };
+        if (mql) {
+          if (mql.addEventListener) mql.addEventListener("change", onChange);
+          else if (mql.addListener) mql.addListener(onChange); // старый Safari
+        }
+      })();
+    </script>       
+
+    <!-- Favicon and icons -->
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0b0b0b" />
+    <meta name="color-scheme" content="light dark">
+
+    <meta name="description" content="Story Squares" />
+
+    <title>Story Squares</title>
+    
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
