@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useProjectStore } from "@/store/useProjectStore";
 import CardItem from "@/components/CardItem";
-import { CARD_EXPORT_SIZE } from "@/config";
+import { CARD_EXPORT_SIZE, PDF_JPEG_QUALITY } from "@/config";
 
 type ExportProgress = { done: number; total: number; elapsedMs: number; etaMs?: number; pct: number };
 
@@ -29,7 +29,7 @@ export default function CardsPreview() {
   const inFlight = useRef(false);
 
   const [format, setFormat] = useState<"jpeg" | "png">("jpeg");
-  const [quality, setQuality] = useState(85); // 50..95 (for jpeg)
+  const [quality, setQuality] = useState(PDF_JPEG_QUALITY * 100); // 50..95 (for jpeg)
 
   const pct = prog?.pct ?? 0;
   const status = useMemo(() => {
